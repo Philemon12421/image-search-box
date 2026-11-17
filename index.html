@@ -1,22 +1,89 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Image Search Engine</title>
+    <meta name="description" content="Discover and explore beautiful images with our image search engine.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="image.css">
 </head>
+
 <body>
-    <h1>Image Search Engine</h1>
-    <form id="search-form">
-        <input type="text" id="search-box" placeholder="Search anything here...">
-    <button>Search</button>
-    </form>
-    <div id="search-result">
 
-    </div>
-    <button id="show-more-btn" >Show more</button>
+    <header class="hero">
+        <nav class="navbar">
+            <a href="#" class="brand">
+                <span class="brand-icon">✦</span>
+                Image<span>Search</span>
+            </a>
 
-<script src="image.js"></script>
+            <div class="nav-label">DISCOVER • EXPLORE • CREATE</div>
+        </nav>
+
+        <div class="hero-content">
+            <span class="eyebrow">YOUR VISUAL DISCOVERY TOOL</span>
+
+            <h1>Find images that<br><span>inspire you.</span></h1>
+
+            <p class="hero-description">
+                Search millions of beautiful images and discover
+                inspiration for your next big idea.
+            </p>
+
+            <form id="search-form">
+                <span class="search-icon">⌕</span>
+                <input
+                    type="text"
+                    id="search-box"
+                    placeholder="Search for anything..."
+                    autocomplete="off"
+                    required
+                >
+                <button type="submit">
+                    Search <span>→</span>
+                </button>
+            </form>
+
+            <div class="search-hint">
+                <span>Popular searches:</span>
+                <span class="suggestion">Nature</span>
+                <span class="suggestion">Technology</span>
+                <span class="suggestion">Architecture</span>
+                <span class="suggestion">Travel</span>
+            </div>
+        </div>
+
+        <div class="hero-decoration decoration-one"></div>
+        <div class="hero-decoration decoration-two"></div>
+    </header>
+
+    <main class="main-content">
+        <div class="results-heading">
+            <div>
+                <span class="section-label">EXPLORE THE WORLD</span>
+                <h2>Discover images</h2>
+            </div>
+            <span class="results-caption">Your next inspiration starts here.</span>
+        </div>
+
+        <div id="search-result"></div>
+
+        <button id="show-more-btn">
+            Show more images <span>↓</span>
+        </button>
+    </main>
+
+    <footer>
+        <p>Made for curious minds. <span>✦</span></p>
+    </footer>
+
+    <script src="image.js"></script>
 </body>
 </html>
