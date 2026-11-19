@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+
+    <title>Link page</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="links.css">
+</head>
+
+<body class="profile-body">
+
+    <main id="profile" class="profile profile-page"></main>
+
+    <p class="profile-footer">
+        <a href="links.html">Make your own link page</a>
+    </p>
+
+    <script src="core.js"></script>
+    <script>
+        const root = document.getElementById("profile");
+        const footer = document.querySelector(".profile-footer");
+
+        function show() {
+            const profile = decodeProfile(location.hash.slice(1));
+
+            if (!profile || (!profile.name && profile.links.length === 0)) {
+                root.dataset.theme = "light";
+                root.innerHTML = "";
+                const msg = document.createElement("div");
+                msg.className = "profile-error";
+                msg.innerHTML = "<h1></h1><p></p>";
+                msg.querySelector("h1").textContent = "This link looks incomplete";
+                msg.querySelector("p").textContent = "Ask the owner to send it again, or make a page of your own.";
+                root.appendChild(msg);
+                document.title = "Link not found";
+                document.body.dataset.theme = "light";
+                return;
+            }
+
+            renderProfile(root, profile);
+            document.title = profile.name ? `${profile.name} · links` : "Link page";
+            document.body.dataset.theme = profile.theme;
+        }
+
+        show();
+        window.addEventListener("hashchange", show);
+    </script>
+</body>
+</html>
