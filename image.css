@@ -104,9 +104,30 @@ button {
     color: var(--accent);
 }
 
-.topbar-note {
+.topbar-nav {
+    display: flex;
+    gap: 6px;
+}
+
+.topbar-nav a {
+    padding: 7px 14px;
+    border-radius: 999px;
     font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
     color: var(--muted);
+    transition: background 0.2s, color 0.2s;
+}
+
+.topbar-nav a:hover {
+    color: var(--ink);
+    background: var(--surface);
+}
+
+.topbar-nav a[aria-current="page"] {
+    color: var(--ink);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
 }
 
 /* ---------- Hero ---------- */
@@ -511,10 +532,6 @@ footer a {
 /* ---------- Responsive ---------- */
 
 @media (max-width: 700px) {
-    .topbar-note {
-        display: none;
-    }
-
     .hero-description {
         font-size: 16px;
     }
