@@ -1,1 +1,140 @@
-# image-search-box
+# ImageSearch
+
+A fast, installable photo search site with a built-in **link-in-bio page builder**. Search free photos from Unsplash, open them full size, and create one shareable page that holds all your social profiles and links.
+
+**Live demo:** [imigost.vercel.app](https://imigost.vercel.app)
+
+No framework and no build step. It's plain HTML, CSS and JavaScript, plus an optional tiny Node server for short links.
+
+## Features
+
+### Photo search
+- Search Unsplash photos, with a "Popular right now" feed on first load
+- Masonry grid that keeps photos in place when you press "Show more"
+- Full-screen viewer with photographer credit, keyboard arrows and Esc to close
+- Loading skeletons, friendly empty and error states
+- Mobile-first: two-column grid on phones, swipeable suggestions, touch-sized buttons, notch and safe-area support
+
+### Link page builder (like Linktree)
+- Add your handle for Instagram, X, TikTok, YouTube, LinkedIn, GitHub, Facebook, Telegram and WhatsApp, plus email and any website
+- Real brand icons on coloured badges
+- 18 looks: Light, Dark, Indigo, Sunset, Ocean, Aurora, Berry, Midnight, Forest, Peach, Mint, Lavender, Candy, Mono, Paper, Bold, Neon and Terminal
+- Live phone preview while you edit
+- Reorder links, validate them as you type, and get a shareable link
+
+### App features
+- Installable PWA with an offline page and "Install app" button
+- Favicon and home-screen icons
+- Cookie consent that actually controls what loads
+- Respects dark mode and reduced-motion settings
+
+## Project structure
+
+| File | What it does |
+| --- | --- |
+| `index.html`, `image.css`, `image.js` | The photo search page |
+| `links.html`, `links.css`, `builder.js` | The link page builder |
+| `profile.html` | The public page people open from your link |
+| `core.js` | Shared logic: platforms, icons, looks, validation, link encoding, rendering |
+| `server.js` | Optional Node server for short links (no packages needed) |
+| `site.css`, `consent.js` | Cookie banner, install button, offline notice |
+| `pwa.js`, `sw.js`, `manifest.webmanifest`, `offline.html` | Progressive web app files |
+| `favicon.svg`, `icons/` | Favicon and app icons |
+
+## Getting started
+
+### 1. Get an Unsplash key
+1. Create a free app at [unsplash.com/developers](https://unsplash.com/developers).
+2. Open `image.js` and replace the value at the top:
+
+```js
+const ACCESS_KEY = "YOUR_UNSPLASH_ACCESS_KEY";
+```
+
+Use the **Access Key** only. Never commit the **Secret Key**. The free demo tier allows about 50 requests per hour, so apply for production access before sharing the site widely.
+
+### 2. Run it
+
+The service worker only runs over `http(s)`, so don't open the files by double-clicking. Use a local server:
+
+```bash
+# Option A: static (photo search + link pages with long links)
+npx serve .
+
+# Option B: with short links like localhost:3000/yourname
+node server.js
+```
+
+`server.js` needs Node 18 or newer. Then open `http://localhost:3000` (Option B) or the address `serve` prints (Option A).
+
+## How the link page works
+
+1. Open **Link page**, fill in your name, a page name and your links, and pick a look.
+2. Press **Create my link** and copy the result.
+
+There are two kinds of link:
+
+| Kind | Looks like | Needs a server? |
+| --- | --- | --- |
+| **Short link** | `yoursite.com/yourname` | Yes, run `server.js` |
+| **Long link** | `yoursite.com/profile.html?u=yourname#…` | No, the page is stored inside the link |
+
+The builder tries the server first and falls back to the long link automatically. A long link is about 400 characters for a typical page.
+
+**Short link ownership:** the first save returns a private edit key, kept in your browser. Only that browser can change the page later, so nobody can take over your name. Page names must be 3 to 30 characters, and reserved names (like `api` or `links`) are blocked.
+
+**Saved data:** short-link pages are stored in `data/pages.json` (change the folder with the `DATA_DIR` environment variable). The port comes from `PORT` (default `3000`).
+
+## Deploying
+
+| Host | Photo search | Long links | Short links |
+| --- | --- | --- | --- |
+| Static hosts (Vercel static, Netlify, GitHub Pages) | Yes | Yes | No |
+| A Node host (Render, Railway, Fly.io, a VPS) | Yes | Yes | Yes |
+
+- **Vercel** serves the files statically, so `server.js` does not run there. Link pages use long links. Short links on Vercel need serverless functions plus a database such as Upstash Redis.
+- **Node hosts** often reset files when they restart, so give `data/` a persistent disk or move storage to a database.
+
+## Installing as an app and offline use
+
+- Browsers that support it show an **Install app** button in the top bar. On iPhone, use Share, then Add to Home Screen.
+- Pages you've opened keep working offline. Photo searches need a connection.
+- **Important:** whenever you change any site file, bump `VERSION` at the top of `sw.js`. Otherwise visitors who installed the app may keep seeing the old files.
+
+## Privacy
+
+- **Essential storage** (always on): your link-page draft (`linkpage:draft`), edit keys (`linkpage:keys`), your cookie choice (`consent:v1`), and saved pages for offline use.
+- **Google Fonts** only loads after a visitor presses **Accept all**. Choosing **Essential only** uses system fonts.
+- Photos load from Unsplash, because that is what the search shows.
+- There are no analytics. If you add some, start them only when `Consent.get() === "all"`.
+
+Visitors can change their choice any time with **Cookie settings** in the footer. This is a good-faith setup, not legal advice, so check the rules that apply to your audience.
+
+## Security notes
+
+- Links are accepted only if they are `http`, `https`, `mailto` or WhatsApp links built by the app. Anything else is dropped.
+- All text is inserted as plain text, never as HTML.
+- The server cleans every field again, limits request size, rate-limits saving, and serves only a fixed list of files.
+- Edit keys are stored as hashes on the server.
+
+## Customising
+
+**Add a social platform:** add an entry to `PLATFORMS` and an icon to `ICON_PATHS` in `core.js`. It appears in the builder automatically.
+
+**Add a look:** add an object to `THEME_LIST` in `core.js` with colours, a button style (`solid`, `glass`, `shadow`, `outline`, `hard` or `glow`), corner size, font and icon style.
+
+**Change the brand colour:** edit `--accent` in the `:root` block of `image.css` and `links.css`, and the `#3a47f0` value in `favicon.svg` and `manifest.webmanifest`.
+
+## Credits
+
+- Photos by [Unsplash](https://unsplash.com) photographers. Credits are shown in the viewer, as Unsplash requires.
+- Fonts: Bricolage Grotesque, Instrument Sans, Fraunces, Space Mono and Nunito, via Google Fonts.
+- Social media logos are trademarks of their respective owners and are used only to identify those services.
+
+## Author
+
+Built by Philemon Osei Kusi.
+
+## License
+
+No license has been chosen yet. Add a `LICENSE` file (MIT is a common choice) to say how others may use this code.
