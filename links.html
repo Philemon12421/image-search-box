@@ -68,12 +68,38 @@
                 </div>
 
                 <div class="field">
-                    <label for="avatar">Profile photo link <span class="optional">optional</span></label>
-                    <input id="avatar" type="url" autocomplete="off" placeholder="https://example.com/me.jpg">
+                    <span class="label" id="avatar-label">Profile photo <span class="optional">optional</span></span>
+
+                    <div class="avatar-field" id="avatar-field">
+                        <div class="avatar-preview" id="avatar-preview" aria-hidden="true"></div>
+                        <div class="avatar-actions">
+                            <div class="avatar-buttons">
+                                <button type="button" class="btn-secondary btn-small" id="avatar-upload" aria-describedby="avatar-help">Upload photo</button>
+                                <button type="button" class="btn-link" id="avatar-remove" hidden>Remove</button>
+                            </div>
+                            <p class="help" id="avatar-help">JPG, PNG or WebP. You can also drop a photo here. It’s cropped to a square.</p>
+                            <input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+                        </div>
+                    </div>
+
+                    <details class="avatar-url">
+                        <summary>Or use a link to a photo</summary>
+                        <label for="avatar" class="visually-hidden">Link to a profile photo</label>
+                        <input id="avatar" type="url" autocomplete="off" placeholder="https://example.com/me.jpg">
+                    </details>
+
+                    <p class="field-msg" id="avatar-msg" role="status"></p>
                 </div>
 
                 <div class="field">
                     <span class="label" id="theme-label">Look <span class="optional" id="theme-name"></span></span>
+                    <div class="theme-filter" id="theme-filter" role="group" aria-label="Filter looks">
+                        <button type="button" class="filter-btn" data-filter="all" aria-pressed="true">All</button>
+                        <button type="button" class="filter-btn" data-filter="light" aria-pressed="false">Light</button>
+                        <button type="button" class="filter-btn" data-filter="dark" aria-pressed="false">Dark</button>
+                        <button type="button" class="filter-btn" data-filter="colour" aria-pressed="false">Colourful</button>
+                        <span class="theme-count" id="theme-count" aria-live="polite"></span>
+                    </div>
                     <div class="theme-grid" id="theme-grid" role="group" aria-labelledby="theme-label"></div>
                 </div>
             </section>
