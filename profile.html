@@ -63,6 +63,7 @@
             // Colour the whole page, not just the column
             applyTheme(document.body, profile.theme);
             document.body.style.background = getTheme(profile.theme).bg;
+            document.body.style.backgroundSize = getTheme(profile.theme).bgSize || "auto";
             document.body.style.color = getTheme(profile.theme).text;
             document.title = profile.name ? `${profile.name} · links` : "Link page";
         }
@@ -72,6 +73,7 @@
             applyTheme(root, "light");
             applyTheme(document.body, "light");
             document.body.style.background = "";
+            document.body.style.backgroundSize = "";
             document.body.style.color = "";
             root.innerHTML = "";
             const box = document.createElement("div");
