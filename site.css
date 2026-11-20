@@ -1,0 +1,185 @@
+/* Shared by every page: cookie banner, install button, offline notice, footer link button.
+   Uses the colour variables each page already defines, with fallbacks. */
+
+/* ---------- Footer "Cookie settings" ---------- */
+
+.link-button {
+    padding: 0;
+    background: none;
+    border: none;
+    font: inherit;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.link-button:focus-visible {
+    outline: 3px solid var(--accent, #3a47f0);
+    outline-offset: 3px;
+}
+
+/* ---------- Cookie banner ---------- */
+
+.consent {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1000;
+    max-width: 460px;
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface, #ffffff);
+    color: var(--ink, #15181a);
+    border: 1px solid var(--line, #d9dcd9);
+    border-radius: 16px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+    font-family: var(--font-body, system-ui, -apple-system, 'Segoe UI', sans-serif);
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: left;
+    animation: consent-in 0.35s ease-out;
+}
+
+.consent[hidden] { display: none; }
+
+@media (min-width: 600px) {
+    .consent {
+        left: 24px;
+        right: auto;
+        bottom: 24px;
+    }
+}
+
+@keyframes consent-in {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.consent h2 {
+    margin-bottom: 6px;
+    font-family: var(--font-display, inherit);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.consent h2:focus { outline: none; }
+
+.consent p { color: var(--muted, #62696d); }
+
+.consent details { margin-top: 10px; }
+
+.consent summary {
+    display: inline-block;
+    cursor: pointer;
+    font-weight: 600;
+    text-underline-offset: 3px;
+}
+
+.consent summary:focus-visible {
+    outline: 3px solid var(--accent, #3a47f0);
+    outline-offset: 3px;
+}
+
+.consent ul {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    color: var(--muted, #62696d);
+}
+
+.consent li + li { margin-top: 6px; }
+
+.consent li strong { color: var(--ink, #15181a); }
+
+/* Both choices look equally prominent, so declining is as easy as accepting */
+.consent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.consent-btn {
+    flex: 1 1 140px;
+    min-height: 46px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 10px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.consent-all {
+    background: var(--accent, #3a47f0);
+    color: var(--accent-ink, #ffffff);
+}
+
+.consent-all:hover { background: var(--accent-hover, #2c37d1); }
+
+.consent-essential {
+    background: var(--ink, #15181a);
+    color: var(--surface, #ffffff);
+}
+
+.consent-essential:hover { opacity: 0.88; }
+
+.consent-btn:focus-visible {
+    outline: 3px solid var(--accent, #3a47f0);
+    outline-offset: 3px;
+}
+
+/* ---------- Install button ---------- */
+
+.install-btn {
+    white-space: nowrap;
+    padding: 7px 14px;
+    background: var(--accent, #3a47f0);
+    border: none;
+    border-radius: 999px;
+    color: var(--accent-ink, #ffffff);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.install-btn:hover { background: var(--accent-hover, #2c37d1); }
+.install-btn[hidden] { display: none; }
+
+.install-btn:focus-visible {
+    outline: 3px solid var(--accent, #3a47f0);
+    outline-offset: 3px;
+}
+
+/* ---------- Offline notice ---------- */
+
+.net-toast {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    max-width: calc(100% - 32px);
+    padding: 10px 18px;
+    background: var(--ink, #15181a);
+    color: var(--surface, #ffffff);
+    border-radius: 999px;
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.net-toast[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .consent { animation: none; }
+}
