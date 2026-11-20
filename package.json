@@ -1,0 +1,12 @@
+{
+  "name": "imagesearch-links",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Image search plus a link-in-bio page builder with short links",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
