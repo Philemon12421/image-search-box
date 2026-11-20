@@ -53,6 +53,7 @@ body {
     font-size: 16px;
     line-height: 1.5;
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 a {
@@ -63,6 +64,8 @@ button {
     font: inherit;
     color: inherit;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 :focus-visible {
@@ -83,9 +86,10 @@ button {
 
 .topbar {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    gap: 10px 16px;
     padding: 22px var(--gutter);
 }
 
@@ -106,10 +110,13 @@ button {
 
 .topbar-nav {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 6px;
 }
 
 .topbar-nav a {
+    white-space: nowrap;
     padding: 7px 14px;
     border-radius: 999px;
     font-size: 14px;
@@ -279,20 +286,28 @@ form button:hover {
 /* Masonry: photos keep their natural proportions */
 
 #search-result {
-    column-width: 300px;
-    column-gap: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.grid-col {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .tile {
     position: relative;
     display: block;
     width: 100%;
-    margin: 0 0 20px;
+    margin: 0;
     padding: 0;
     border: none;
     border-radius: var(--radius);
     overflow: hidden;
-    break-inside: avoid;
     background: var(--line);
     text-align: left;
 }
@@ -344,6 +359,9 @@ form button:hover {
     font-size: 14px;
     font-weight: 500;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     opacity: 0;
     transition: opacity 0.2s;
     z-index: 1;
@@ -361,17 +379,20 @@ form button:hover {
     .tile-credit {
         opacity: 1;
     }
+
+    .tile::before {
+        display: none;
+    }
 }
 
 /* Loading skeletons */
 
 .skeleton {
-    margin: 0 0 20px;
+    margin: 0;
     border-radius: var(--radius);
     background: linear-gradient(100deg, var(--line) 30%, color-mix(in srgb, var(--line) 55%, var(--bg)) 50%, var(--line) 70%);
     background-size: 200% 100%;
     animation: shimmer 1.4s linear infinite;
-    break-inside: avoid;
 }
 
 @keyframes shimmer {
@@ -469,6 +490,7 @@ footer a {
     display: block;
     max-width: 100%;
     max-height: calc(100vh - 140px);
+    max-height: calc(100dvh - 140px);
     border-radius: 10px;
     object-fit: contain;
     background: #1b1d1f;
@@ -531,46 +553,174 @@ footer a {
 
 /* ---------- Responsive ---------- */
 
+/* Keep content clear of phone notches in landscape */
+.topbar,
+.hero,
+.main-content,
+footer {
+    padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+}
+
+/* Phones and small tablets */
 @media (max-width: 700px) {
+    .topbar {
+        padding-top: calc(14px + env(safe-area-inset-top, 0px));
+        padding-bottom: 14px;
+    }
+
+    .topbar { gap: 8px 10px; }
+
+    .brand {
+        gap: 7px;
+        font-size: 18px;
+    }
+
+    .brand-mark {
+        width: 20px;
+        height: 20px;
+    }
+
+    .topbar-nav { gap: 2px; }
+
+    .topbar-nav a {
+        padding: 8px 10px;
+    }
+
+    .hero {
+        padding-top: 28px;
+        padding-bottom: 28px;
+    }
+
     .hero-description {
+        margin-top: 14px;
         font-size: 16px;
     }
 
     form {
-        margin-top: 28px;
+        margin-top: 24px;
+        padding: 5px;
     }
 
+    .search-icon { display: none; }
+
     form input {
+        height: 46px;
+        padding-left: 12px;
         font-size: 16px;
+        text-overflow: ellipsis;
     }
 
     form button {
+        height: 46px;
         padding: 0 18px;
     }
 
-    .search-icon {
-        display: none;
+    /* One scrolling row of suggestions instead of a wrapped block */
+    .suggestions {
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-top: 14px;
+        margin-left: calc(-1 * max(var(--gutter), env(safe-area-inset-left, 0px)));
+        margin-right: calc(-1 * max(var(--gutter), env(safe-area-inset-right, 0px)));
+        padding: 2px max(var(--gutter), env(safe-area-inset-right, 0px));
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
     }
 
-    form input {
-        padding-left: 12px;
+    .suggestions::-webkit-scrollbar { display: none; }
+
+    .suggestions > span,
+    .suggestion {
+        flex: none;
+        white-space: nowrap;
     }
 
-    #search-result {
-        column-width: 100%;
+    .main-content { padding-bottom: 56px; }
+
+    .results-heading {
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+    }
+
+    /* Two columns of photos, so a page isn't a 5,000px scroll */
+    #search-result,
+    .grid-col {
+        gap: 10px;
+    }
+
+    .tile,
+    .skeleton {
+        border-radius: 10px;
+    }
+
+    .tile-credit {
+        padding: 22px 10px 8px;
+        font-size: 12px;
+    }
+
+    #show-more-btn {
+        width: 100%;
+        max-width: 360px;
+    }
+
+    /* Full-screen viewer: room for the close button on top, arrows on the bottom */
+    #lightbox {
+        padding: calc(64px + env(safe-area-inset-top, 0px)) 12px calc(76px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .lb-figure img {
+        max-height: calc(100vh - 220px);
+        max-height: calc(100dvh - 220px);
+    }
+
+    .lb-figure figcaption { font-size: 14px; }
+
+    .lb-close {
+        top: calc(12px + env(safe-area-inset-top, 0px));
+        right: 12px;
     }
 
     .lb-nav {
         top: auto;
-        bottom: 16px;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
         transform: none;
+    }
+
+    .lb-prev { left: 12px; }
+    .lb-next { right: 12px; }
+}
+
+/* Fingers need bigger targets than mouse pointers */
+@media (pointer: coarse) {
+    .topbar-nav a,
+    .suggestion,
+    .install-btn {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+    }
+
+    .suggestion { padding-left: 16px; padding-right: 16px; }
+
+    .lb-close,
+    .lb-nav {
+        width: 48px;
+        height: 48px;
     }
 }
 
-@media (max-width: 480px) {
-    .lb-figure img {
-        max-height: calc(100vh - 220px);
+/* Short landscape phones: tighten the hero so results show sooner */
+@media (max-height: 500px) and (orientation: landscape) {
+    .hero {
+        padding-top: 20px;
+        padding-bottom: 20px;
     }
+
+    h1 { font-size: 34px; }
+
+    .hero-description { display: none; }
 }
 
 /* ---------- Reduced motion ---------- */
