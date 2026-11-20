@@ -295,6 +295,140 @@ input.invalid {
     font-weight: 600;
 }
 
+/* ---------- Profile photo field ---------- */
+
+.avatar-field {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    background: var(--bg);
+    border: 1.5px dashed var(--line);
+    border-radius: 12px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.avatar-field.is-dragging {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.avatar-preview {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 30px;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-actions {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.avatar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+}
+
+.btn-small {
+    min-height: 40px;
+    padding: 0 18px;
+    font-size: 14px;
+}
+
+.btn-link {
+    padding: 8px 2px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.btn-link:hover { color: var(--danger); }
+.btn-link[hidden] { display: none; }
+
+.avatar-actions .help { margin-top: 0; }
+
+.avatar-url {
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.avatar-url summary {
+    display: inline-block;
+    cursor: pointer;
+    color: var(--muted);
+    font-weight: 500;
+    text-underline-offset: 3px;
+}
+
+.avatar-url summary:hover { color: var(--ink); }
+
+.avatar-url input { margin-top: 8px; }
+
+.field-msg {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--danger);
+}
+
+.field-msg:empty { display: none; }
+
+/* ---------- Look filter ---------- */
+
+.theme-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 14px;
+}
+
+.filter-btn {
+    min-height: 36px;
+    padding: 0 14px;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.filter-btn:hover { border-color: var(--ink); }
+
+.filter-btn[aria-pressed="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--surface);
+}
+
+.theme-count {
+    margin-left: auto;
+    align-self: center;
+    font-size: 13px;
+    color: var(--muted);
+}
+
 /* ---------- Links editor ---------- */
 
 #links-editor {
@@ -482,10 +616,17 @@ input.invalid {
     --p-font: 'Instrument Sans', system-ui, sans-serif;
 
     background: var(--p-bg);
+    background-size: var(--p-bg-size, auto);
     color: var(--p-text);
     font-family: var(--p-font);
     text-align: center;
 }
+
+/* The handwriting font runs small, so give it a lift */
+.profile[data-font="hand"] .profile-name { font-size: 34px; }
+.profile[data-font="hand"] .profile-bio { font-size: 19px; }
+.profile[data-font="hand"] .link-label { font-size: 21px; }
+.profile[data-font="hand"] .link-sub { font-size: 15px; }
 
 .avatar {
     display: grid;
@@ -601,13 +742,13 @@ input.invalid {
 /* Some looks use one colour for every icon instead of brand colours */
 .profile[data-icons="mono"] .badge {
     background: var(--p-text) !important;
-    color: var(--p-bg);
+    color: var(--p-bg-solid, var(--p-bg));
 }
 
 /* Gradient or transparent backgrounds: use the card colour so the icon stays readable */
 .profile[data-theme="terminal"] .badge,
 .profile[data-theme="paper"] .badge {
-    color: var(--p-bg);
+    color: var(--p-bg-solid, var(--p-bg));
 }
 
 .link-text {
@@ -746,6 +887,8 @@ input.invalid {
 
 @media (max-width: 600px) {
     .panel { padding: 20px 16px; }
+
+    .avatar-field { flex-direction: column; align-items: flex-start; }
 
     .link-row {
         grid-template-columns: minmax(0, 1fr) auto;
