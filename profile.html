@@ -7,50 +7,114 @@
 
     <title>Link page</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#f2f3f1" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ImageSearch">
+
+    <!-- Loads Google Fonts only after the visitor accepts -->
+    <script src="consent.js"></script>
+    <link rel="stylesheet" href="site.css">
 
     <link rel="stylesheet" href="links.css">
 </head>
 
 <body class="profile-body">
 
-    <main id="profile" class="profile profile-page"></main>
+    <main id="profile" class="profile profile-page" aria-live="polite" aria-busy="true">
+        <div class="profile-skeleton" aria-hidden="true">
+            <div class="sk sk-avatar"></div>
+            <div class="sk sk-name"></div>
+            <div class="sk sk-bio"></div>
+            <div class="sk sk-bio sk-bio-short"></div>
+            <div class="sk-links">
+                <div class="sk sk-link"></div>
+                <div class="sk sk-link"></div>
+                <div class="sk sk-link"></div>
+            </div>
+        </div>
+    </main>
 
     <p class="profile-footer">
-        <a href="links.html">Make your own link page</a>
+        <a href="links.html">Make your own link page</a> <span aria-hidden="true">·</span> <button type="button" class="link-button" data-consent-open>Cookie settings</button>
     </p>
 
     <script src="core.js"></script>
+    <script src="pwa.js"></script>
     <script>
         const root = document.getElementById("profile");
-        const footer = document.querySelector(".profile-footer");
 
-        function show() {
-            const profile = decodeProfile(location.hash.slice(1));
+        /* The short name from /ama or ?u=ama */
+        function getSlug() {
+            const fromQuery = new URLSearchParams(location.search).get("u");
+            if (fromQuery) return slugify(fromQuery);
+            const fromPath = location.pathname.replace(/^\/|\/$/g, "");
+            return /\.\w+$/.test(fromPath) ? "" : slugify(fromPath);
+        }
 
-            if (!profile || (!profile.name && profile.links.length === 0)) {
-                root.dataset.theme = "light";
-                root.innerHTML = "";
-                const msg = document.createElement("div");
-                msg.className = "profile-error";
-                msg.innerHTML = "<h1></h1><p></p>";
-                msg.querySelector("h1").textContent = "This link looks incomplete";
-                msg.querySelector("p").textContent = "Ask the owner to send it again, or make a page of your own.";
-                root.appendChild(msg);
-                document.title = "Link not found";
-                document.body.dataset.theme = "light";
+        function showProfile(profile) {
+            root.removeAttribute("aria-busy");
+            renderProfile(root, profile);
+            // Colour the whole page, not just the column
+            applyTheme(document.body, profile.theme);
+            document.body.style.background = getTheme(profile.theme).bg;
+            document.body.style.color = getTheme(profile.theme).text;
+            document.title = profile.name ? `${profile.name} · links` : "Link page";
+        }
+
+        function showMessage(title, text) {
+            root.removeAttribute("aria-busy");
+            applyTheme(root, "light");
+            applyTheme(document.body, "light");
+            document.body.style.background = "";
+            document.body.style.color = "";
+            root.innerHTML = "";
+            const box = document.createElement("div");
+            box.className = "profile-error";
+            const h1 = document.createElement("h1");
+            h1.textContent = title;
+            const p = document.createElement("p");
+            p.textContent = text;
+            box.append(h1, p);
+            root.appendChild(box);
+            document.title = title;
+        }
+
+        async function load() {
+            // 1. A long link carries the page inside it
+            const embedded = decodeProfile(location.hash.slice(1));
+            if (embedded && (embedded.name || embedded.links.length)) {
+                showProfile(embedded);
                 return;
             }
 
-            renderProfile(root, profile);
-            document.title = profile.name ? `${profile.name} · links` : "Link page";
-            document.body.dataset.theme = profile.theme;
+            // 2. A short link: ask the server for that name
+            const slug = getSlug();
+            if (slug) {
+                try {
+                    const res = await fetch(`/api/pages/${encodeURIComponent(slug)}`, { cache: "no-store" });
+                    const type = res.headers.get("content-type") || "";
+                    if (res.ok && type.includes("application/json")) {
+                        const data = await res.json();
+                        const profile = cleanProfile(data.profile);
+                        if (profile) {
+                            showProfile(profile);
+                            return;
+                        }
+                    }
+                } catch (e) { /* fall through to the message below */ }
+            }
+
+            showMessage("We couldn’t find this page", "The link may be mistyped or incomplete. Ask the owner to send it again, or make a page of your own.");
         }
 
-        show();
-        window.addEventListener("hashchange", show);
+        load();
+        window.addEventListener("hashchange", load);
     </script>
 </body>
 </html>
