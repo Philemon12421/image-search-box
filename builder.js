@@ -1,10 +1,12 @@
 const STORAGE_KEY = "linkpage:draft";
+const KEYS_STORAGE = "linkpage:keys";
 
 const nameInput = document.getElementById("name");
 const slugInput = document.getElementById("slug");
 const bioInput = document.getElementById("bio");
 const avatarInput = document.getElementById("avatar");
-const themeButtons = document.querySelectorAll(".theme-btn");
+const themeGrid = document.getElementById("theme-grid");
+const themeName = document.getElementById("theme-name");
 const linksEditor = document.getElementById("links-editor");
 const addLinkBtn = document.getElementById("add-link");
 const previewRoot = document.getElementById("preview");
@@ -14,6 +16,7 @@ const shareMsg = document.getElementById("share-msg");
 const shareBox = document.getElementById("share-box");
 const shareUrl = document.getElementById("share-url");
 const shareNote = document.getElementById("share-note");
+const shareNoteText = document.getElementById("share-note-text");
 const copyBtn = document.getElementById("copy");
 const openLink = document.getElementById("open");
 
@@ -28,27 +31,36 @@ const DEFAULT_PROFILE = {
 
 let state = loadDraft();
 let slugTouched = Boolean(state.slug);
-let linkGenerated = false;
+
+/* After "Create my link": which kind of link we made and for which page name */
+let linkMode = null;        // "short" (saved on the server) or "long" (data inside the link)
+let generatedSlug = null;
+let saveTimer = null;
 
 /* ---------- Storage ---------- */
 
 function loadDraft() {
     try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        const clean = cleanProfile(saved);
+        const clean = cleanProfile(JSON.parse(localStorage.getItem(STORAGE_KEY)));
         if (clean) return clean;
-    } catch (e) {
-        /* storage unavailable or corrupted: start fresh */
-    }
+    } catch (e) { /* storage unavailable or corrupted: start fresh */ }
     return structuredClone(DEFAULT_PROFILE);
 }
 
 function saveDraft() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+}
+
+function getEditKey(slug) {
+    try { return (JSON.parse(localStorage.getItem(KEYS_STORAGE)) || {})[slug] || null; } catch (e) { return null; }
+}
+
+function setEditKey(slug, key) {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {
-        /* ignore: the page still works without saving */
-    }
+        const all = JSON.parse(localStorage.getItem(KEYS_STORAGE)) || {};
+        all[slug] = key;
+        localStorage.setItem(KEYS_STORAGE, JSON.stringify(all));
+    } catch (e) { /* ignore */ }
 }
 
 /* ---------- Updating ---------- */
@@ -56,7 +68,8 @@ function saveDraft() {
 function update() {
     saveDraft();
     renderProfile(previewRoot, state, { placeholder: true });
-    if (linkGenerated) refreshShareLink();
+    themeName.textContent = getTheme(state.theme).name;
+    afterEdit();
 }
 
 function syncFields() {
@@ -64,7 +77,6 @@ function syncFields() {
     slugInput.value = state.slug;
     bioInput.value = state.bio;
     avatarInput.value = state.avatar;
-    themeButtons.forEach((btn) => btn.setAttribute("aria-pressed", String(btn.dataset.theme === state.theme)));
 }
 
 nameInput.addEventListener("input", () => {
@@ -82,27 +94,59 @@ slugInput.addEventListener("input", () => {
     update();
 });
 
-slugInput.addEventListener("blur", () => {
-    slugInput.value = state.slug;
-});
+slugInput.addEventListener("blur", () => { slugInput.value = state.slug; });
 
-bioInput.addEventListener("input", () => {
-    state.bio = bioInput.value;
-    update();
-});
+bioInput.addEventListener("input", () => { state.bio = bioInput.value; update(); });
+avatarInput.addEventListener("input", () => { state.avatar = avatarInput.value.trim(); update(); });
 
-avatarInput.addEventListener("input", () => {
-    state.avatar = avatarInput.value.trim();
-    update();
-});
+/* ---------- Looks ---------- */
 
-themeButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-        state.theme = btn.dataset.theme;
-        themeButtons.forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
-        update();
+function renderThemes() {
+    themeGrid.innerHTML = "";
+
+    THEME_LIST.forEach((theme) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "theme-card";
+        btn.dataset.theme = theme.id;
+        btn.setAttribute("aria-pressed", String(theme.id === state.theme));
+        btn.setAttribute("aria-label", theme.name);
+
+        const thumb = document.createElement("span");
+        thumb.className = "theme-thumb";
+        thumb.style.background = theme.bg;
+
+        const dot = document.createElement("i");
+        dot.className = "t-dot";
+        dot.style.background = theme.avatar;
+        dot.style.borderRadius = theme.radius === 0 ? "0" : "50%";
+        thumb.appendChild(dot);
+
+        for (let i = 0; i < 2; i++) {
+            const bar = document.createElement("i");
+            bar.className = "t-bar";
+            bar.style.background = theme.card_style === "outline" ? "transparent" : theme.card;
+            bar.style.border = `${theme.card_style === "hard" ? 2 : 1}px solid ${theme.line}`;
+            bar.style.borderRadius = theme.radius === 0 ? "0" : theme.radius >= 999 ? "999px" : "5px";
+            if (theme.card_style === "hard") bar.style.boxShadow = `2px 2px 0 ${theme.line}`;
+            if (theme.card_style === "glow") bar.style.boxShadow = `0 0 6px ${theme.line}`;
+            thumb.appendChild(bar);
+        }
+
+        const label = document.createElement("span");
+        label.className = "theme-label";
+        label.textContent = theme.name;
+
+        btn.append(thumb, label);
+        btn.addEventListener("click", () => {
+            state.theme = theme.id;
+            themeGrid.querySelectorAll(".theme-card").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+            update();
+        });
+
+        themeGrid.appendChild(btn);
     });
-});
+}
 
 /* ---------- Links editor ---------- */
 
@@ -113,6 +157,14 @@ function renderLinksEditor() {
         const row = document.createElement("div");
         row.className = "link-row";
 
+        const lead = document.createElement("div");
+        lead.className = "select-wrap";
+
+        const icon = document.createElement("span");
+        icon.className = "select-icon";
+        icon.style.background = PLATFORMS[item.p].color;
+        icon.innerHTML = iconMarkup(item.p, 16);
+
         const select = document.createElement("select");
         select.setAttribute("aria-label", `Link ${index + 1} type`);
         Object.entries(PLATFORMS).forEach(([key, platform]) => {
@@ -122,6 +174,7 @@ function renderLinksEditor() {
             option.selected = key === item.p;
             select.appendChild(option);
         });
+        lead.append(icon, select);
 
         const value = document.createElement("input");
         value.type = "text";
@@ -131,7 +184,6 @@ function renderLinksEditor() {
         value.placeholder = PLATFORMS[item.p].hint;
         value.setAttribute("aria-label", `Link ${index + 1} ${PLATFORMS[item.p].kind === "handle" ? "handle" : "address"}`);
 
-        const showTitle = item.p === "website";
         const title = document.createElement("input");
         title.type = "text";
         title.maxLength = 60;
@@ -139,7 +191,7 @@ function renderLinksEditor() {
         title.placeholder = "Button text, like “My portfolio”";
         title.className = "link-title";
         title.setAttribute("aria-label", `Link ${index + 1} button text`);
-        title.hidden = !showTitle;
+        title.hidden = item.p !== "website";
 
         const actions = document.createElement("div");
         actions.className = "row-actions";
@@ -161,19 +213,11 @@ function renderLinksEditor() {
             update();
         });
 
-        value.addEventListener("input", () => {
-            item.v = value.value;
-            markValidity();
-            update();
-        });
-
-        title.addEventListener("input", () => {
-            item.t = title.value;
-            update();
-        });
+        value.addEventListener("input", () => { item.v = value.value; markValidity(); update(); });
+        title.addEventListener("input", () => { item.t = title.value; update(); });
 
         markValidity();
-        row.append(select, value, actions, title);
+        row.append(lead, value, actions, title);
         linksEditor.appendChild(row);
     });
 }
@@ -215,42 +259,131 @@ addLinkBtn.addEventListener("click", () => {
 
 /* ---------- Creating the link ---------- */
 
-function refreshShareLink() {
-    const url = buildShareUrl(state);
+function showLink(url, note) {
+    shareBox.hidden = false;
     shareUrl.value = url;
     openLink.href = url;
     shareNote.hidden = false;
-
-    shareMsg.textContent = url.length > 1800
-        ? "Your link is very long. Some apps may cut it off, so try removing a link or shortening your bio."
-        : "";
+    shareNoteText.textContent = note;
 }
 
-generateBtn.addEventListener("click", () => {
-    const hasLink = state.links.some((l) => resolveLink(l));
+/* Saves the page on the server. Returns "ok", "taken", "offline" or "error". */
+async function saveToServer() {
+    let response;
+    try {
+        const key = getEditKey(state.slug);
+        response = await fetch("/api/pages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(key ? { "X-Edit-Key": key } : {}) },
+            body: JSON.stringify(state),
+        });
+    } catch (e) {
+        return "offline"; // file:// or no network
+    }
 
-    if (!state.name.trim()) {
-        shareMsg.textContent = "Add your display name first.";
-        nameInput.focus();
+    const isJson = (response.headers.get("content-type") || "").includes("application/json");
+    if (!isJson) return "offline"; // plain file hosting answers with a web page, not JSON
+
+    const data = await response.json().catch(() => null);
+    if (response.ok && data && data.ok) {
+        if (data.editKey) setEditKey(state.slug, data.editKey);
+        return "ok";
+    }
+    if (response.status === 409) return "taken";
+    if (response.status === 429) return "busy";
+    return "error";
+}
+
+function validateForShare() {
+    if (!state.name.trim()) { shareMsg.textContent = "Add your display name first."; nameInput.focus(); return false; }
+    if (!state.slug) { shareMsg.textContent = "Add a page name first."; slugInput.focus(); return false; }
+    if (!state.links.some((l) => resolveLink(l))) { shareMsg.textContent = "Add at least one valid link first."; return false; }
+    return true;
+}
+
+generateBtn.addEventListener("click", async () => {
+    shareMsg.textContent = "";
+    if (!validateForShare()) return;
+
+    generateBtn.disabled = true;
+    generateBtn.textContent = "Creating...";
+
+    const result = await saveToServer();
+
+    generateBtn.disabled = false;
+    generateBtn.textContent = "Update my link";
+
+    if (result === "ok") {
+        linkMode = "short";
+        generatedSlug = state.slug;
+        showLink(`${location.origin}/${state.slug}`, "Your changes save to this link automatically. If you change your page name, press the button again to get a new link.");
+        shareUrl.focus();
+        shareUrl.select();
         return;
     }
-    if (!state.slug) {
-        shareMsg.textContent = "Add a page name first.";
+
+    if (result === "taken") {
+        generateBtn.textContent = "Create my link";
+        shareMsg.textContent = "That page name is already taken. Try another one.";
         slugInput.focus();
         return;
     }
-    if (!hasLink) {
-        shareMsg.textContent = "Add at least one valid link first.";
+
+    if (result === "busy") {
+        generateBtn.textContent = "Create my link";
+        shareMsg.textContent = "Too many saves in a short time. Wait a few minutes and try again.";
         return;
     }
 
-    linkGenerated = true;
-    shareBox.hidden = false;
-    refreshShareLink();
-    generateBtn.textContent = "Update my link";
+    if (result === "error") {
+        generateBtn.textContent = "Create my link";
+        shareMsg.textContent = "Something went wrong while saving. Please try again.";
+        return;
+    }
+
+    // Offline / static hosting: fall back to a link that carries the page inside it
+    linkMode = "long";
+    generatedSlug = state.slug;
+    refreshLongLink();
     shareUrl.focus();
     shareUrl.select();
 });
+
+function refreshLongLink() {
+    const url = buildLongUrl(state);
+    showLink(url, "This site has no server, so your page is stored inside the link and the link is long. If you change something, copy the link again. Run server.js to get short links like yoursite.com/" + (state.slug || "name") + ".");
+    shareMsg.textContent = url.length > 1800
+        ? "This link is very long and some apps may cut it off. Try a shorter bio or fewer links."
+        : "";
+}
+
+/* Called after every edit: keep an existing link in step with the page */
+function afterEdit() {
+    if (!linkMode) return;
+
+    if (linkMode === "long") {
+        refreshLongLink();
+        return;
+    }
+
+    if (state.slug !== generatedSlug) {
+        shareMsg.textContent = "You changed the page name. Press “Update my link” to get a new link.";
+        return;
+    }
+
+    clearTimeout(saveTimer);
+    shareMsg.textContent = "";
+    saveTimer = setTimeout(async () => {
+        if (!validateQuiet()) return;
+        const result = await saveToServer();
+        shareMsg.textContent = result === "ok" ? "" : "Couldn’t save your latest change. Check your connection.";
+    }, 900);
+}
+
+/* Auto-save only when the page would pass the same checks as creating it */
+function validateQuiet() {
+    return state.name.trim() && state.slug && state.links.some((l) => resolveLink(l));
+}
 
 copyBtn.addEventListener("click", async () => {
     try {
@@ -266,5 +399,6 @@ copyBtn.addEventListener("click", async () => {
 /* ---------- Start ---------- */
 
 syncFields();
+renderThemes();
 renderLinksEditor();
 update();
