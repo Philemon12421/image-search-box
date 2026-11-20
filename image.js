@@ -1,4 +1,4 @@
-const ACCESS_KEY = "M6TJBtHgrKtH5e4PKgrzfNDTV3fQJK1VDTHdZnjZQRc";  // https://unsplash.com/developers
+const ACCESS_KEY = "YOUR_UNSPLASH_ACCESS_KEY"; // https://unsplash.com/developers
 const PER_PAGE = 12;
 const UTM = "?utm_source=image_search&utm_medium=referral";
 
@@ -18,6 +18,16 @@ const lbSource = document.getElementById("lb-source");
 const lbPrev = document.getElementById("lb-prev");
 const lbNext = document.getElementById("lb-next");
 const lbClose = document.getElementById("lb-close");
+
+/* A long placeholder gets cut off on phones, so use a short one there */
+const narrowScreen = window.matchMedia("(max-width: 520px)");
+
+function setPlaceholder() {
+    searchBox.placeholder = narrowScreen.matches ? "Search photos" : "Try “foggy mountains” or “blue door”";
+}
+
+setPlaceholder();
+narrowScreen.addEventListener("change", setPlaceholder);
 
 let keyword = "";
 let page = 1;
@@ -41,15 +51,91 @@ function setStatus(title, text) {
     statusEl.append(strong, text || "");
 }
 
-function showSkeletons() {
+/* ---------- Masonry grid ---------- */
+/* Each photo goes into the shortest column and stays there, so tapping
+   "Show more" never makes photos you've already seen jump around. */
+
+let gridCols = [];
+let gridItems = []; // every element in the order it was added
+
+function wantedColumns() {
+    if (window.innerWidth <= 700) return 2;
+    const width = searchResult.clientWidth || window.innerWidth;
+    return Math.max(2, Math.min(4, Math.floor((width + 20) / 320)));
+}
+
+function buildColumns() {
     searchResult.innerHTML = "";
+    gridCols = [];
+    for (let i = 0; i < wantedColumns(); i++) {
+        const col = document.createElement("div");
+        col.className = "grid-col";
+        searchResult.appendChild(col);
+        gridCols.push(col);
+    }
+}
+
+function resetGrid() {
+    gridItems = [];
+    buildColumns();
+}
+
+function placeInShortest(el) {
+    let target = gridCols[0];
+    gridCols.forEach((col) => {
+        if (col.offsetHeight < target.offsetHeight) target = col;
+    });
+    target.appendChild(el);
+}
+
+function addToGrid(el) {
+    gridItems.push(el);
+    placeInShortest(el);
+}
+
+function removeFromGrid(el) {
+    gridItems = gridItems.filter((item) => item !== el);
+    el.remove();
+}
+
+/* Rotating the phone or resizing the window can change the column count */
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        if (gridItems.length && wantedColumns() !== gridCols.length) {
+            buildColumns();
+            gridItems.forEach(placeInShortest);
+        }
+    }, 150);
+});
+
+function showSkeletons() {
+    resetGrid();
     const heights = [260, 340, 220, 300, 380, 240, 320, 280, 360];
     heights.forEach((h) => {
         const el = document.createElement("div");
         el.className = "skeleton";
         el.style.height = h + "px";
-        searchResult.appendChild(el);
+        addToGrid(el);
     });
+}
+
+let moreSkeletons = [];
+
+function addMoreSkeletons() {
+    [300, 240, 340].forEach((h) => {
+        const el = document.createElement("div");
+        el.className = "skeleton";
+        el.style.height = h + "px";
+        addToGrid(el);
+        moreSkeletons.push(el);
+    });
+}
+
+function removeMoreSkeletons() {
+    moreSkeletons.forEach((el) => removeFromGrid(el));
+    moreSkeletons = [];
 }
 
 function buildUrl() {
@@ -72,7 +158,7 @@ async function loadPhotos() {
     if (loading) return;
 
     if (ACCESS_KEY === "YOUR_UNSPLASH_ACCESS_KEY") {
-        searchResult.innerHTML = "";
+        resetGrid();
         setStatus("Add your Unsplash access key", "Open image.js and replace YOUR_UNSPLASH_ACCESS_KEY with your key.");
         return;
     }
@@ -89,6 +175,7 @@ async function loadPhotos() {
     } else {
         showMoreBtn.disabled = true;
         showMoreBtn.textContent = "Loading...";
+        addMoreSkeletons();
     }
 
     try {
@@ -102,7 +189,7 @@ async function loadPhotos() {
         const data = await response.json();
         const results = keyword ? data.results : data;
 
-        if (page === 1) searchResult.innerHTML = "";
+        if (page === 1) resetGrid();
 
         if (results.length === 0 && page === 1) {
             setStatus(`No photos found for “${keyword}”`, "Check the spelling or try a broader word, like “forest” instead of “pine forest”.");
@@ -110,7 +197,7 @@ async function loadPhotos() {
         } else {
             results.forEach((photo) => {
                 photos.push(photo);
-                searchResult.appendChild(createTile(photo, photos.length - 1));
+                addToGrid(createTile(photo, photos.length - 1));
             });
 
             hasMore = keyword ? page < data.total_pages : results.length === PER_PAGE;
@@ -121,7 +208,7 @@ async function loadPhotos() {
         }
     } catch (error) {
         console.error(error);
-        if (page === 1) searchResult.innerHTML = "";
+        if (page === 1) resetGrid();
         hasMore = false;
 
         if (error.message === "rate") {
@@ -135,6 +222,7 @@ async function loadPhotos() {
         }
     } finally {
         loading = false;
+        removeMoreSkeletons();
         searchResult.setAttribute("aria-busy", "false");
         showMoreBtn.disabled = false;
         showMoreBtn.textContent = "Show more photos";
