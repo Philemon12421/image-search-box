@@ -17,7 +17,7 @@
     var FONT_URL =
         "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700" +
         "&family=Instrument+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600;9..144,700" +
-        "&family=Space+Mono:wght@400;700&family=Nunito:wght@600;800&display=swap";
+        "&family=Space+Mono:wght@400;700&family=Nunito:wght@600;800&family=Caveat:wght@600;700&display=swap";
 
     var listeners = [];
     var banner = null;
