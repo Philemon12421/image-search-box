@@ -7,9 +7,19 @@
     <title>Create your link page · ImageSearch</title>
     <meta name="description" content="Put all your social media and links on one page and share a single link.">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#f2f3f1" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ImageSearch">
+
+    <!-- Loads Google Fonts only after the visitor accepts -->
+    <script src="consent.js"></script>
+    <link rel="stylesheet" href="site.css">
 
     <link rel="stylesheet" href="links.css">
 </head>
@@ -25,7 +35,7 @@
             ImageSearch
         </a>
         <nav class="topbar-nav">
-            <a href="index.html">Image search</a>
+            <a href="index.html">Photos</a>
             <a href="links.html" aria-current="page">Link page</a>
         </nav>
     </header>
@@ -63,12 +73,8 @@
                 </div>
 
                 <div class="field">
-                    <span class="label" id="theme-label">Look</span>
-                    <div class="themes" role="group" aria-labelledby="theme-label">
-                        <button type="button" class="theme-btn" data-theme="light" aria-pressed="true"><span class="swatch swatch-light"></span>Light</button>
-                        <button type="button" class="theme-btn" data-theme="ink" aria-pressed="false"><span class="swatch swatch-ink"></span>Dark</button>
-                        <button type="button" class="theme-btn" data-theme="indigo" aria-pressed="false"><span class="swatch swatch-indigo"></span>Indigo</button>
-                    </div>
+                    <span class="label" id="theme-label">Look <span class="optional" id="theme-name"></span></span>
+                    <div class="theme-grid" id="theme-grid" role="group" aria-labelledby="theme-label"></div>
                 </div>
             </section>
 
@@ -83,6 +89,7 @@
 
             <section class="panel" aria-labelledby="share-heading">
                 <h2 id="share-heading">Your link</h2>
+                <p class="help">Pick a short page name above. Your link will be your site address followed by that name.</p>
                 <button type="button" id="generate" class="btn-primary">Create my link</button>
                 <p id="share-msg" class="share-msg" role="status"></p>
 
@@ -93,7 +100,7 @@
                     <a id="open" class="btn-secondary" target="_blank" rel="noopener noreferrer">Open</a>
                 </div>
                 <p id="share-note" class="help" hidden>
-                    Your page is stored inside this link, so anyone with it can see your page. If you change something, copy the link again.
+                    <span id="share-note-text"></span>
                 </p>
             </section>
         </div>
@@ -106,7 +113,12 @@
         </aside>
     </main>
 
+    <footer class="site-footer">
+        <p>Made with ImageSearch. <span aria-hidden="true">·</span> <button type="button" class="link-button" data-consent-open>Cookie settings</button></p>
+    </footer>
+
     <script src="core.js"></script>
     <script src="builder.js"></script>
+    <script src="pwa.js"></script>
 </body>
 </html>
