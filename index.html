@@ -2,14 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
     <title>Image Search Engine</title>
     <meta name="description" content="Search free, high-quality photos and open them in a full-size viewer.">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#f2f3f1" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ImageSearch">
+
+    <!-- Loads Google Fonts only after the visitor accepts -->
+    <script src="consent.js"></script>
+    <link rel="stylesheet" href="site.css">
 
     <link rel="stylesheet" href="image.css">
 </head>
@@ -25,7 +35,7 @@
             ImageSearch
         </a>
         <nav class="topbar-nav">
-            <a href="index.html" aria-current="page">Image search</a>
+            <a href="index.html" aria-current="page">Photos</a>
             <a href="links.html">Link page</a>
         </nav>
     </header>
@@ -75,7 +85,7 @@
     </main>
 
     <footer>
-        <p>Photos provided by <a href="https://unsplash.com/?utm_source=image_search&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a>.</p>
+        <p>Photos provided by <a href="https://unsplash.com/?utm_source=image_search&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a>. <span aria-hidden="true">·</span> <button type="button" class="link-button" data-consent-open>Cookie settings</button></p>
     </footer>
 
     <dialog id="lightbox" aria-label="Photo viewer">
@@ -99,5 +109,6 @@
     </dialog>
 
     <script src="image.js"></script>
+    <script src="pwa.js"></script>
 </body>
 </html>
