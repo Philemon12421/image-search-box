@@ -5,6 +5,14 @@ const nameInput = document.getElementById("name");
 const slugInput = document.getElementById("slug");
 const bioInput = document.getElementById("bio");
 const avatarInput = document.getElementById("avatar");
+const avatarField = document.getElementById("avatar-field");
+const avatarPreview = document.getElementById("avatar-preview");
+const avatarUpload = document.getElementById("avatar-upload");
+const avatarRemove = document.getElementById("avatar-remove");
+const avatarFile = document.getElementById("avatar-file");
+const avatarMsg = document.getElementById("avatar-msg");
+const themeFilter = document.getElementById("theme-filter");
+const themeCount = document.getElementById("theme-count");
 const themeGrid = document.getElementById("theme-grid");
 const themeName = document.getElementById("theme-name");
 const linksEditor = document.getElementById("links-editor");
@@ -68,6 +76,7 @@ function setEditKey(slug, key) {
 function update() {
     saveDraft();
     renderProfile(previewRoot, state, { placeholder: true });
+    renderAvatarPreview();
     themeName.textContent = getTheme(state.theme).name;
     afterEdit();
 }
@@ -76,7 +85,7 @@ function syncFields() {
     nameInput.value = state.name;
     slugInput.value = state.slug;
     bioInput.value = state.bio;
-    avatarInput.value = state.avatar;
+    avatarInput.value = isDataImage(state.avatar) ? "" : state.avatar; // never show a wall of photo data
 }
 
 nameInput.addEventListener("input", () => {
@@ -97,14 +106,151 @@ slugInput.addEventListener("input", () => {
 slugInput.addEventListener("blur", () => { slugInput.value = state.slug; });
 
 bioInput.addEventListener("input", () => { state.bio = bioInput.value; update(); });
-avatarInput.addEventListener("input", () => { state.avatar = avatarInput.value.trim(); update(); });
+avatarInput.addEventListener("input", () => {
+    state.avatar = avatarInput.value.trim();
+    avatarMsg.textContent = "";
+    update();
+});
+
+/* ---------- Profile photo ---------- */
+
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+const AVATAR_SIZE = 256;
+let shownAvatar = null;
+
+function initialOf() {
+    return (state.name.trim().charAt(0) || "?").toUpperCase();
+}
+
+function renderAvatarPreview() {
+    const src = safeAvatar(state.avatar) || "";
+
+    if (src !== shownAvatar) {
+        shownAvatar = src;
+        avatarPreview.innerHTML = "";
+        if (src) {
+            const img = document.createElement("img");
+            img.alt = "";
+            img.src = src;
+            img.addEventListener("error", () => {
+                img.remove();
+                avatarPreview.textContent = initialOf();
+            });
+            avatarPreview.appendChild(img);
+        }
+    }
+    if (!src) avatarPreview.textContent = initialOf();
+
+    avatarRemove.hidden = !state.avatar;
+    if (!avatarUpload.disabled) avatarUpload.textContent = state.avatar ? "Change photo" : "Upload photo";
+}
+
+function loadViaImage(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("decode")); };
+        img.src = url;
+    });
+}
+
+async function readBitmap(file) {
+    try {
+        // from-image applies the phone's rotation, so portraits don't come out sideways
+        return await createImageBitmap(file, { imageOrientation: "from-image" });
+    } catch (e) {
+        return loadViaImage(file);
+    }
+}
+
+/* Crops to a centred square, shrinks to 256 px and saves as a small JPEG */
+async function photoToAvatar(file) {
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) throw new Error("type");
+    if (file.size > MAX_UPLOAD_BYTES) throw new Error("big");
+
+    const bitmap = await readBitmap(file);
+    const w = bitmap.naturalWidth || bitmap.width;
+    const h = bitmap.naturalHeight || bitmap.height;
+    if (!w || !h) throw new Error("decode");
+
+    const side = Math.min(w, h);
+    const canvas = document.createElement("canvas");
+    canvas.width = AVATAR_SIZE;
+    canvas.height = AVATAR_SIZE;
+
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff"; // see-through PNGs get a white background instead of black
+    ctx.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bitmap, (w - side) / 2, (h - side) / 2, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+    if (bitmap.close) bitmap.close();
+
+    // Lower the quality step by step until it fits the size limit
+    for (const quality of [0.86, 0.74, 0.62, 0.5]) {
+        const url = canvas.toDataURL("image/jpeg", quality);
+        if (isDataImage(url)) return url;
+    }
+    throw new Error("big");
+}
+
+async function handleAvatarFile(file) {
+    if (!file) return;
+    avatarMsg.textContent = "";
+    avatarUpload.disabled = true;
+    avatarUpload.textContent = "Processing...";
+
+    try {
+        state.avatar = await photoToAvatar(file);
+        avatarInput.value = "";
+        update();
+    } catch (error) {
+        avatarMsg.textContent = error.message === "big"
+            ? "That photo is too large. Try a smaller one."
+            : "We couldn’t read that image. Try a JPG, PNG or WebP photo.";
+    } finally {
+        avatarUpload.disabled = false;
+        avatarFile.value = "";
+        renderAvatarPreview();
+    }
+}
+
+avatarUpload.addEventListener("click", () => avatarFile.click());
+avatarFile.addEventListener("change", () => handleAvatarFile(avatarFile.files[0]));
+
+avatarRemove.addEventListener("click", () => {
+    state.avatar = "";
+    avatarInput.value = "";
+    avatarMsg.textContent = "";
+    update();
+});
+
+// Drag a photo onto the box
+["dragenter", "dragover"].forEach((type) =>
+    avatarField.addEventListener(type, (e) => {
+        e.preventDefault();
+        avatarField.classList.add("is-dragging");
+    })
+);
+["dragleave", "drop"].forEach((type) =>
+    avatarField.addEventListener(type, () => avatarField.classList.remove("is-dragging"))
+);
+avatarField.addEventListener("drop", (e) => {
+    e.preventDefault();
+    handleAvatarFile(e.dataTransfer.files[0]);
+});
 
 /* ---------- Looks ---------- */
+
+let currentFilter = "all";
 
 function renderThemes() {
     themeGrid.innerHTML = "";
 
-    THEME_LIST.forEach((theme) => {
+    const visible = THEME_LIST.filter((t) => currentFilter === "all" || t.tone === currentFilter);
+    themeCount.textContent = `${visible.length} looks`;
+
+    visible.forEach((theme) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "theme-card";
@@ -115,6 +261,10 @@ function renderThemes() {
         const thumb = document.createElement("span");
         thumb.className = "theme-thumb";
         thumb.style.background = theme.bg;
+        if (theme.bgSize) {
+            // patterns are drawn at half size so they read well on a small thumbnail
+            thumb.style.backgroundSize = theme.bgSize.split(" ").map((v) => parseFloat(v) / 2 + "px").join(" ");
+        }
 
         const dot = document.createElement("i");
         dot.className = "t-dot";
@@ -147,6 +297,14 @@ function renderThemes() {
         themeGrid.appendChild(btn);
     });
 }
+
+themeFilter.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-filter]");
+    if (!btn) return;
+    currentFilter = btn.dataset.filter;
+    themeFilter.querySelectorAll("[data-filter]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+    renderThemes();
+});
 
 /* ---------- Links editor ---------- */
 
@@ -351,7 +509,10 @@ generateBtn.addEventListener("click", async () => {
 
 function refreshLongLink() {
     const url = buildLongUrl(state);
-    showLink(url, "This site has no server, so your page is stored inside the link and the link is long. If you change something, copy the link again. Run server.js to get short links like yoursite.com/" + (state.slug || "name") + ".");
+    const photoNote = isDataImage(state.avatar)
+        ? " Your uploaded photo isn’t included in long links. Use short links, or paste a link to your photo instead."
+        : "";
+    showLink(url, "This site has no server, so your page is stored inside the link and the link is long. If you change something, copy the link again. Run server.js to get short links like yoursite.com/" + (state.slug || "name") + "." + photoNote);
     shareMsg.textContent = url.length > 1800
         ? "This link is very long and some apps may cut it off. Try a shorter bio or fewer links."
         : "";
