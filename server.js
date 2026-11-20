@@ -18,7 +18,7 @@ const { cleanProfile, SLUG_PATTERN } = require("./core.js");
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "pages.json");
-const MAX_BODY = 16 * 1024;
+const MAX_BODY = 128 * 1024; // a profile photo is up to about 60 KB of text
 const MIN_SLUG = 3;
 
 /* Names that would clash with real files or routes */
