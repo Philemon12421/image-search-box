@@ -18,7 +18,8 @@ No framework and no build step. It's plain HTML, CSS and JavaScript, plus an opt
 ### Link page builder (like Linktree)
 - Add your handle for Instagram, X, TikTok, YouTube, LinkedIn, GitHub, Facebook, Telegram and WhatsApp, plus email and any website
 - Real brand icons on coloured badges
-- 18 looks: Light, Dark, Indigo, Sunset, Ocean, Aurora, Berry, Midnight, Forest, Peach, Mint, Lavender, Candy, Mono, Paper, Bold, Neon and Terminal
+- **36 looks**, filterable by Light, Dark and Colourful. They include gradients, patterned backgrounds (Polka, Notebook, Blueprint), glass, glow and hard-edged button styles, and serif, monospace and handwriting fonts
+- **Profile photo:** upload one (cropped to a square and shrunk to about 5 KB in the browser, drag and drop works) or paste a link to one
 - Live phone preview while you edit
 - Reorder links, validate them as you type, and get a shareable link
 
@@ -81,6 +82,8 @@ There are two kinds of link:
 
 The builder tries the server first and falls back to the long link automatically. A long link is about 400 characters for a typical page.
 
+**Profile photos and long links:** an uploaded photo is saved with short links, but it is too big to fit inside a long link. With a long link the page shows your initial instead, and the builder tells you. Pasting a link to a photo works with both.
+
 **Short link ownership:** the first save returns a private edit key, kept in your browser. Only that browser can change the page later, so nobody can take over your name. Page names must be 3 to 30 characters, and reserved names (like `api` or `links`) are blocked.
 
 **Saved data:** short-link pages are stored in `data/pages.json` (change the folder with the `DATA_DIR` environment variable). The port comes from `PORT` (default `3000`).
@@ -114,6 +117,7 @@ Visitors can change their choice any time with **Cookie settings** in the footer
 
 - Links are accepted only if they are `http`, `https`, `mailto` or WhatsApp links built by the app. Anything else is dropped.
 - All text is inserted as plain text, never as HTML.
+- Uploaded photos are accepted only as small JPEG, PNG or WebP data (SVG is refused because it can carry scripts). Photo links must be real `http(s)` addresses.
 - The server cleans every field again, limits request size, rate-limits saving, and serves only a fixed list of files.
 - Edit keys are stored as hashes on the server.
 
@@ -121,20 +125,20 @@ Visitors can change their choice any time with **Cookie settings** in the footer
 
 **Add a social platform:** add an entry to `PLATFORMS` and an icon to `ICON_PATHS` in `core.js`. It appears in the builder automatically.
 
-**Add a look:** add an object to `THEME_LIST` in `core.js` with colours, a button style (`solid`, `glass`, `shadow`, `outline`, `hard` or `glow`), corner size, font and icon style.
+**Add a look:** add an object to `THEME_LIST` in `core.js` with a `tone` (`light`, `dark` or `colour`, used by the filter), colours, a button style (`solid`, `glass`, `shadow`, `outline`, `hard` or `glow`), corner size, font (`sans`, `serif`, `mono`, `round` or `hand`) and icon style. For a patterned background, also set `bgSize` and a plain `solid` colour.
 
 **Change the brand colour:** edit `--accent` in the `:root` block of `image.css` and `links.css`, and the `#3a47f0` value in `favicon.svg` and `manifest.webmanifest`.
 
 ## Credits
 
 - Photos by [Unsplash](https://unsplash.com) photographers. Credits are shown in the viewer, as Unsplash requires.
-- Fonts: Bricolage Grotesque, Instrument Sans, Fraunces, Space Mono and Nunito, via Google Fonts.
+- Fonts: Bricolage Grotesque, Instrument Sans, Fraunces, Space Mono, Nunito and Caveat, via Google Fonts.
 - Social media logos are trademarks of their respective owners and are used only to identify those services.
 
 ## Author
 
-Built by Philemon Osei Kusi.
+Built by Philemon Osei Kusi.Drenchack Tech Company Production
 
 ## License
 
-MIT
+`LICENSE` MIT 
