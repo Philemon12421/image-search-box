@@ -1,33 +1,77 @@
 /* Shared logic for the link page builder, the public profile page and the server */
 
 const MAX_LINKS = 30;
+
+/* Profile photos: either an image link, or a small photo uploaded in the builder
+   (shrunk in the browser and stored as a data: address). Only these image types are
+   accepted. SVG is left out on purpose because it can carry scripts. */
+const MAX_AVATAR_DATA = 60000;
+const DATA_IMAGE = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+function isDataImage(value) {
+    return typeof value === "string" && value.length <= MAX_AVATAR_DATA && DATA_IMAGE.test(value);
+}
+
+function cleanAvatar(value) {
+    if (typeof value !== "string") return "";
+    if (value.startsWith("data:")) return isDataImage(value) ? value : "";
+    const link = value.trim().slice(0, 500);
+    return safeUrl(link) ? link : ""; // only real http(s) addresses are kept
+}
+
+/* The address to show for a profile photo, or null if it isn't safe */
+function safeAvatar(value) {
+    return isDataImage(value) ? value : safeUrl(value);
+}
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /* ---------- Looks ---------- */
-/* card: solid | glass | shadow | outline | hard | glow
+/* tone: light | dark | colour (used by the filter in the builder)
+   card: solid | glass | shadow | outline | hard | glow
    radius: corner size of link buttons in px
-   font: sans | serif | mono | round
+   bgSize / solid: only for patterned backgrounds
+   font: sans | serif | mono | round | hand
    icons: brand (coloured badges) | mono (badges use the text colour) */
 
 const THEME_LIST = [
-    { id: "light",    name: "Light",    bg: "#f2f3f1", card: "#ffffff", text: "#15181a", muted: "#62696d", line: "#d9dcd9", avatar: "#3a47f0", avatarInk: "#ffffff", card_style: "solid",   radius: 14,  font: "sans",  icons: "brand" },
-    { id: "ink",      name: "Dark",     bg: "#101214", card: "#1d2125", text: "#eceeef", muted: "#9aa1a6", line: "#2e3438", avatar: "#eceeef", avatarInk: "#101214", card_style: "solid",   radius: 14,  font: "sans",  icons: "brand" },
-    { id: "indigo",   name: "Indigo",   bg: "#3a47f0", card: "rgba(255,255,255,0.14)", text: "#ffffff", muted: "rgba(255,255,255,0.8)", line: "rgba(255,255,255,0.3)", avatar: "#ffffff", avatarInk: "#3a47f0", card_style: "glass", radius: 14, font: "sans", icons: "brand" },
-    { id: "sunset",   name: "Sunset",   bg: "linear-gradient(160deg,#ff9a56 0%,#ff5e7e 55%,#b44bd4 100%)", card: "rgba(255,255,255,0.2)", text: "#ffffff", muted: "rgba(255,255,255,0.88)", line: "rgba(255,255,255,0.4)", avatar: "#ffffff", avatarInk: "#ff5e7e", card_style: "glass", radius: 999, font: "round", icons: "brand" },
-    { id: "ocean",    name: "Ocean",    bg: "linear-gradient(180deg,#0f4c81 0%,#1aa6b7 100%)", card: "rgba(255,255,255,0.16)", text: "#ffffff", muted: "rgba(255,255,255,0.85)", line: "rgba(255,255,255,0.32)", avatar: "#ffffff", avatarInk: "#0f4c81", card_style: "glass", radius: 18, font: "sans", icons: "brand" },
-    { id: "aurora",   name: "Aurora",   bg: "linear-gradient(135deg,#00c9a7 0%,#845ec2 60%,#2c73d2 100%)", card: "rgba(255,255,255,0.18)", text: "#ffffff", muted: "rgba(255,255,255,0.86)", line: "rgba(255,255,255,0.38)", avatar: "#ffffff", avatarInk: "#845ec2", card_style: "glass", radius: 16, font: "sans", icons: "brand" },
-    { id: "berry",    name: "Berry",    bg: "linear-gradient(160deg,#4a1d6b 0%,#c2185b 100%)", card: "rgba(255,255,255,0.14)", text: "#ffffff", muted: "rgba(255,255,255,0.82)", line: "rgba(255,255,255,0.3)", avatar: "#ffffff", avatarInk: "#c2185b", card_style: "glass", radius: 999, font: "sans", icons: "brand" },
-    { id: "midnight", name: "Midnight", bg: "linear-gradient(180deg,#0b1026 0%,#1b2559 100%)", card: "rgba(255,255,255,0.08)", text: "#e9ecff", muted: "#9aa4d6", line: "rgba(255,255,255,0.16)", avatar: "#8fa2ff", avatarInk: "#0b1026", card_style: "glass", radius: 14, font: "sans", icons: "brand" },
-    { id: "forest",   name: "Forest",   bg: "#14281d", card: "#1e3a2b", text: "#e8f3ea", muted: "#9db8a5", line: "#2f5440", avatar: "#8fd19e", avatarInk: "#14281d", card_style: "solid", radius: 16, font: "round", icons: "brand" },
-    { id: "peach",    name: "Peach",    bg: "#ffe3d3", card: "#fff7f2", text: "#4a2a1f", muted: "#8a6355", line: "#f2bfa6", avatar: "#ff7a4d", avatarInk: "#ffffff", card_style: "shadow", radius: 22, font: "round", icons: "brand" },
-    { id: "mint",     name: "Mint",     bg: "#d9f5e8", card: "#ffffff", text: "#12372a", muted: "#4f7a69", line: "#b3e3cd", avatar: "#1f9d6b", avatarInk: "#ffffff", card_style: "shadow", radius: 999, font: "sans", icons: "brand" },
-    { id: "lavender", name: "Lavender", bg: "#e9e3ff", card: "#ffffff", text: "#2b2155", muted: "#6f68a0", line: "#cfc5f5", avatar: "#6b4fe0", avatarInk: "#ffffff", card_style: "shadow", radius: 22, font: "sans", icons: "brand" },
-    { id: "candy",    name: "Candy",    bg: "#ffd6e8", card: "#ffffff", text: "#5a1033", muted: "#a05577", line: "#ffb3d3", avatar: "#ff4d9a", avatarInk: "#ffffff", card_style: "solid", radius: 999, font: "round", icons: "brand" },
-    { id: "mono",     name: "Mono",     bg: "#e6e6e6", card: "#ffffff", text: "#111111", muted: "#555555", line: "#cfcfcf", avatar: "#111111", avatarInk: "#ffffff", card_style: "solid", radius: 10, font: "sans", icons: "mono" },
-    { id: "paper",    name: "Paper",    bg: "#f4efe6", card: "transparent", text: "#2a2118", muted: "#6e6254", line: "#2a2118", avatar: "#2a2118", avatarInk: "#f4efe6", card_style: "outline", radius: 0, font: "serif", icons: "mono" },
-    { id: "brutal",   name: "Bold",     bg: "#ffe14d", card: "#ffffff", text: "#111111", muted: "#2b2b2b", line: "#111111", avatar: "#111111", avatarInk: "#ffe14d", card_style: "hard", radius: 0, font: "sans", icons: "mono" },
-    { id: "neon",     name: "Neon",     bg: "#0a0a12", card: "#12121f", text: "#e8fbff", muted: "#7fb5c2", line: "#00e5ff", avatar: "#00e5ff", avatarInk: "#0a0a12", card_style: "glow", radius: 12, font: "mono", icons: "mono" },
-    { id: "terminal", name: "Terminal", bg: "#050a05", card: "transparent", text: "#39ff6a", muted: "#2fb552", line: "#39ff6a", avatar: "#39ff6a", avatarInk: "#050a05", card_style: "outline", radius: 0, font: "mono", icons: "mono" },
+    { id: "light", tone: "light",    name: "Light",    bg: "#f2f3f1", card: "#ffffff", text: "#15181a", muted: "#62696d", line: "#d9dcd9", avatar: "#3a47f0", avatarInk: "#ffffff", card_style: "solid",   radius: 14,  font: "sans",  icons: "brand" },
+    { id: "ink", tone: "dark",      name: "Dark",     bg: "#101214", card: "#1d2125", text: "#eceeef", muted: "#9aa1a6", line: "#2e3438", avatar: "#eceeef", avatarInk: "#101214", card_style: "solid",   radius: 14,  font: "sans",  icons: "brand" },
+    { id: "indigo", tone: "colour",   name: "Indigo",   bg: "#3a47f0", card: "rgba(255,255,255,0.14)", text: "#ffffff", muted: "rgba(255,255,255,0.8)", line: "rgba(255,255,255,0.3)", avatar: "#ffffff", avatarInk: "#3a47f0", card_style: "glass", radius: 14, font: "sans", icons: "brand" },
+    { id: "sunset", tone: "colour",   name: "Sunset",   bg: "linear-gradient(160deg,#ff9a56 0%,#ff5e7e 55%,#b44bd4 100%)", card: "rgba(255,255,255,0.2)", text: "#ffffff", muted: "rgba(255,255,255,0.88)", line: "rgba(255,255,255,0.4)", avatar: "#ffffff", avatarInk: "#ff5e7e", card_style: "glass", radius: 999, font: "round", icons: "brand" },
+    { id: "ocean", tone: "colour",    name: "Ocean",    bg: "linear-gradient(180deg,#0f4c81 0%,#1aa6b7 100%)", card: "rgba(255,255,255,0.16)", text: "#ffffff", muted: "rgba(255,255,255,0.85)", line: "rgba(255,255,255,0.32)", avatar: "#ffffff", avatarInk: "#0f4c81", card_style: "glass", radius: 18, font: "sans", icons: "brand" },
+    { id: "aurora", tone: "colour",   name: "Aurora",   bg: "linear-gradient(135deg,#00c9a7 0%,#845ec2 60%,#2c73d2 100%)", card: "rgba(255,255,255,0.18)", text: "#ffffff", muted: "rgba(255,255,255,0.86)", line: "rgba(255,255,255,0.38)", avatar: "#ffffff", avatarInk: "#845ec2", card_style: "glass", radius: 16, font: "sans", icons: "brand" },
+    { id: "berry", tone: "colour",    name: "Berry",    bg: "linear-gradient(160deg,#4a1d6b 0%,#c2185b 100%)", card: "rgba(255,255,255,0.14)", text: "#ffffff", muted: "rgba(255,255,255,0.82)", line: "rgba(255,255,255,0.3)", avatar: "#ffffff", avatarInk: "#c2185b", card_style: "glass", radius: 999, font: "sans", icons: "brand" },
+    { id: "midnight", tone: "dark", name: "Midnight", bg: "linear-gradient(180deg,#0b1026 0%,#1b2559 100%)", card: "rgba(255,255,255,0.08)", text: "#e9ecff", muted: "#9aa4d6", line: "rgba(255,255,255,0.16)", avatar: "#8fa2ff", avatarInk: "#0b1026", card_style: "glass", radius: 14, font: "sans", icons: "brand" },
+    { id: "forest", tone: "dark",   name: "Forest",   bg: "#14281d", card: "#1e3a2b", text: "#e8f3ea", muted: "#9db8a5", line: "#2f5440", avatar: "#8fd19e", avatarInk: "#14281d", card_style: "solid", radius: 16, font: "round", icons: "brand" },
+    { id: "peach", tone: "light",    name: "Peach",    bg: "#ffe3d3", card: "#fff7f2", text: "#4a2a1f", muted: "#8a6355", line: "#f2bfa6", avatar: "#ff7a4d", avatarInk: "#ffffff", card_style: "shadow", radius: 22, font: "round", icons: "brand" },
+    { id: "mint", tone: "light",     name: "Mint",     bg: "#d9f5e8", card: "#ffffff", text: "#12372a", muted: "#4f7a69", line: "#b3e3cd", avatar: "#1f9d6b", avatarInk: "#ffffff", card_style: "shadow", radius: 999, font: "sans", icons: "brand" },
+    { id: "lavender", tone: "light", name: "Lavender", bg: "#e9e3ff", card: "#ffffff", text: "#2b2155", muted: "#6f68a0", line: "#cfc5f5", avatar: "#6b4fe0", avatarInk: "#ffffff", card_style: "shadow", radius: 22, font: "sans", icons: "brand" },
+    { id: "candy", tone: "light",    name: "Candy",    bg: "#ffd6e8", card: "#ffffff", text: "#5a1033", muted: "#a05577", line: "#ffb3d3", avatar: "#ff4d9a", avatarInk: "#ffffff", card_style: "solid", radius: 999, font: "round", icons: "brand" },
+    { id: "mono", tone: "light",     name: "Mono",     bg: "#e6e6e6", card: "#ffffff", text: "#111111", muted: "#555555", line: "#cfcfcf", avatar: "#111111", avatarInk: "#ffffff", card_style: "solid", radius: 10, font: "sans", icons: "mono" },
+    { id: "paper", tone: "light",    name: "Paper",    bg: "#f4efe6", card: "transparent", text: "#2a2118", muted: "#6e6254", line: "#2a2118", avatar: "#2a2118", avatarInk: "#f4efe6", card_style: "outline", radius: 0, font: "serif", icons: "mono" },
+    { id: "brutal", tone: "colour",   name: "Bold",     bg: "#ffe14d", card: "#ffffff", text: "#111111", muted: "#2b2b2b", line: "#111111", avatar: "#111111", avatarInk: "#ffe14d", card_style: "hard", radius: 0, font: "sans", icons: "mono" },
+    { id: "neon", tone: "dark",     name: "Neon",     bg: "#0a0a12", card: "#12121f", text: "#e8fbff", muted: "#7fb5c2", line: "#00e5ff", avatar: "#00e5ff", avatarInk: "#0a0a12", card_style: "glow", radius: 12, font: "mono", icons: "mono" },
+    { id: "terminal", tone: "dark", name: "Terminal", bg: "#050a05", card: "transparent", text: "#39ff6a", muted: "#2fb552", line: "#39ff6a", avatar: "#39ff6a", avatarInk: "#050a05", card_style: "outline", radius: 0, font: "mono", icons: "mono" },
+
+    /* ---- More looks ---- */
+    { id: "sky",       tone: "light",  name: "Sky",       bg: "linear-gradient(180deg,#e3f3ff 0%,#fdfeff 100%)", card: "#ffffff", text: "#0b2a4a", muted: "#5b7690", line: "#cfe4f7", avatar: "#1e88e5", avatarInk: "#ffffff", card_style: "shadow", radius: 18, font: "sans", icons: "brand" },
+    { id: "rose",      tone: "light",  name: "Rose",      bg: "#ffe4ea", card: "#fff8fa", text: "#5c1a2b", muted: "#a2586b", line: "#f7bccb", avatar: "#e11d48", avatarInk: "#ffffff", card_style: "solid", radius: 16, font: "serif", icons: "brand" },
+    { id: "lemon",     tone: "light",  name: "Lemon",     bg: "#fff8c5", solid: "#fff8c5", card: "#ffffff", text: "#3a3300", muted: "#7a6f1f", line: "#ecdc6a", avatar: "#3a3300", avatarInk: "#fff8c5", card_style: "solid", radius: 14, font: "round", icons: "mono" },
+    { id: "matcha",    tone: "light",  name: "Matcha",    bg: "#e6efd8", card: "#f7fbf0", text: "#2f3e1f", muted: "#68794f", line: "#c6d6a8", avatar: "#5b7f2a", avatarInk: "#ffffff", card_style: "shadow", radius: 16, font: "round", icons: "brand" },
+    { id: "cotton",    tone: "light",  name: "Cotton",    bg: "linear-gradient(135deg,#ffd1dc 0%,#cfe6ff 50%,#d6ffe4 100%)", card: "rgba(255,255,255,0.7)", text: "#2b2b3a", muted: "#6a6a80", line: "rgba(255,255,255,0.9)", avatar: "#ffffff", avatarInk: "#7a5cff", card_style: "glass", radius: 22, font: "round", icons: "brand" },
+    { id: "sunrise",   tone: "light",  name: "Sunrise",   bg: "linear-gradient(180deg,#ffd194 0%,#9fe6f2 100%)", card: "rgba(255,255,255,0.6)", text: "#1d2b3a", muted: "#41566b", line: "rgba(255,255,255,0.85)", avatar: "#ff8a3d", avatarInk: "#ffffff", card_style: "glass", radius: 16, font: "sans", icons: "brand" },
+    { id: "ice",       tone: "light",  name: "Ice",       bg: "linear-gradient(160deg,#eaf6ff 0%,#c8e3fb 100%)", card: "rgba(255,255,255,0.65)", text: "#12324d", muted: "#46657f", line: "rgba(255,255,255,0.95)", avatar: "#3b82c4", avatarInk: "#ffffff", card_style: "glass", radius: 14, font: "sans", icons: "brand" },
+    { id: "polka",     tone: "light",  name: "Polka",     bg: "radial-gradient(#e6c97a 1.6px, transparent 1.8px), #fff7e0", bgSize: "20px 20px", solid: "#fff7e0", card: "#ffffff", text: "#4a3a10", muted: "#8a7433", line: "#e6c97a", avatar: "#e6a817", avatarInk: "#ffffff", card_style: "solid", radius: 14, font: "round", icons: "brand" },
+    { id: "notebook",  tone: "light",  name: "Notebook",  bg: "repeating-linear-gradient(180deg, transparent 0, transparent 31px, #cfe1f3 31px, #cfe1f3 32px), #fffef8", solid: "#fffef8", card: "#ffffff", text: "#1f2a44", muted: "#5d6b88", line: "#1f2a44", avatar: "#1f2a44", avatarInk: "#fffef8", card_style: "solid", radius: 6, font: "hand", icons: "mono" },
+    { id: "blueprint", tone: "colour", name: "Blueprint", bg: "linear-gradient(rgba(255,255,255,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.09) 1px, transparent 1px), #0b3d91", bgSize: "26px 26px", solid: "#0b3d91", card: "rgba(255,255,255,0.08)", text: "#ffffff", muted: "#b8cdf5", line: "rgba(255,255,255,0.55)", avatar: "#ffffff", avatarInk: "#0b3d91", card_style: "outline", radius: 2, font: "mono", icons: "mono" },
+    { id: "dusk",      tone: "colour", name: "Dusk",      bg: "linear-gradient(180deg,#2c3e50 0%,#fd746c 100%)", card: "rgba(255,255,255,0.16)", text: "#ffffff", muted: "rgba(255,255,255,0.85)", line: "rgba(255,255,255,0.35)", avatar: "#ffffff", avatarInk: "#2c3e50", card_style: "glass", radius: 18, font: "sans", icons: "brand" },
+    { id: "cherry",    tone: "colour", name: "Cherry",    bg: "#7a0019", card: "rgba(255,255,255,0.1)", text: "#ffffff", muted: "rgba(255,255,255,0.8)", line: "rgba(255,255,255,0.28)", avatar: "#ffffff", avatarInk: "#7a0019", card_style: "glass", radius: 999, font: "round", icons: "brand" },
+    { id: "coffee",    tone: "dark",   name: "Coffee",    bg: "#2b1d14", card: "#3a2a1e", text: "#f3e6d8", muted: "#bfa58c", line: "#5a4331", avatar: "#d9b48a", avatarInk: "#2b1d14", card_style: "solid", radius: 12, font: "serif", icons: "mono" },
+    { id: "graphite",  tone: "dark",   name: "Graphite",  bg: "#1b1b1f", card: "#26262c", text: "#ffffff", muted: "#a0a0ab", line: "#3a3a42", avatar: "#ffffff", avatarInk: "#1b1b1f", card_style: "solid", radius: 10, font: "sans", icons: "brand" },
+    { id: "gold",      tone: "dark",   name: "Gold",      bg: "#0e0e0e", card: "transparent", text: "#f5e6c0", muted: "#b9a574", line: "#c9a24b", avatar: "#c9a24b", avatarInk: "#0e0e0e", card_style: "outline", radius: 4, font: "serif", icons: "mono" },
+    { id: "galaxy",    tone: "dark",   name: "Galaxy",    bg: "radial-gradient(circle at 20% 10%, rgba(139,92,246,0.55) 0%, transparent 45%), radial-gradient(circle at 85% 90%, rgba(37,99,235,0.5) 0%, transparent 45%), #0b0b1f", solid: "#0b0b1f", card: "rgba(255,255,255,0.07)", text: "#f1ecff", muted: "#a99fd6", line: "#8b5cf6", avatar: "#c4b5fd", avatarInk: "#0b0b1f", card_style: "glow", radius: 16, font: "sans", icons: "brand" },
+    { id: "arcade",    tone: "dark",   name: "Arcade",    bg: "#1a0b2e", card: "#2a1250", text: "#ffffff", muted: "#c9a8ff", line: "#ff2e97", avatar: "#00f0ff", avatarInk: "#1a0b2e", card_style: "hard", radius: 0, font: "mono", icons: "mono" },
+    { id: "ember",     tone: "dark",   name: "Ember",     bg: "linear-gradient(160deg,#1a0a00 0%,#7a2200 100%)", card: "rgba(255,140,0,0.12)", text: "#ffe7cf", muted: "#e0b48c", line: "rgba(255,150,60,0.45)", avatar: "#ff8a3d", avatarInk: "#1a0a00", card_style: "glass", radius: 14, font: "sans", icons: "brand" },
 ];
 
 const THEMES = THEME_LIST.map((t) => t.id);
@@ -37,6 +81,7 @@ const FONTS = {
     serif: `'Fraunces', Georgia, 'Times New Roman', serif`,
     mono:  `'Space Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace`,
     round: `'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif`,
+    hand:  `'Caveat', 'Segoe Print', 'Bradley Hand', cursive`,
 };
 
 function getTheme(id) {
@@ -48,6 +93,8 @@ function applyTheme(el, id) {
     const t = getTheme(id);
     const s = el.style;
     s.setProperty("--p-bg", t.bg);
+    s.setProperty("--p-bg-size", t.bgSize || "auto");
+    s.setProperty("--p-bg-solid", t.solid || t.bg); // a plain colour, for icons drawn on top of the page colour
     s.setProperty("--p-card", t.card);
     s.setProperty("--p-text", t.text);
     s.setProperty("--p-muted", t.muted);
@@ -60,6 +107,7 @@ function applyTheme(el, id) {
     s.setProperty("--p-font", FONTS[t.font]);
     el.dataset.theme = t.id;
     el.dataset.card = t.card_style;
+    el.dataset.font = t.font;
     el.dataset.icons = t.icons;
 }
 
@@ -182,7 +230,7 @@ function cleanProfile(data) {
         name: str(data.name, 60),
         slug: slugify(str(data.slug, 30)),
         bio: str(data.bio, 240),
-        avatar: str(data.avatar, 500),
+        avatar: cleanAvatar(data.avatar),
         theme: THEMES.includes(data.theme) ? data.theme : "light",
         links: (Array.isArray(data.links) ? data.links : []).slice(0, MAX_LINKS).map((l) => ({
             p: PLATFORMS[l && l.p] ? l.p : "website",
@@ -199,7 +247,7 @@ function encodeProfile(profile) {
         profile.name,
         profile.slug,
         profile.bio,
-        profile.avatar,
+        isDataImage(profile.avatar) ? "" : profile.avatar, // an uploaded photo is too big for a link
         profile.theme,
         profile.links.map((l) => (l.t ? [l.p, l.v, l.t] : [l.p, l.v])),
     ];
@@ -243,7 +291,7 @@ function renderProfile(root, profile, { placeholder = false } = {}) {
     const avatar = document.createElement("div");
     avatar.className = "avatar";
     const initial = (name || "?").charAt(0).toUpperCase();
-    const imgUrl = safeUrl(profile.avatar);
+    const imgUrl = safeAvatar(profile.avatar);
 
     if (imgUrl) {
         const img = document.createElement("img");
